@@ -175,7 +175,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen> {
                           );
                           if (!mounted) return;
                           Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => ResultScreen(result: response)),
+                            MaterialPageRoute(builder: (_) => ResultScreen(
+                                result: response,
+                                question: widget.question,
+                                selectedAnswer: selected!,
+                            )),
                           );
                         } catch (e) {
                           if (!mounted) return;
