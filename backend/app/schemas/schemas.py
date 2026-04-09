@@ -75,3 +75,44 @@ class AttemptOut(BaseModel):
     time_taken: float
     skipped: bool
     created_at: datetime
+
+class QuestionCreate(BaseModel):
+    exam: str
+    subject: str
+    topic: str
+    year: int
+    difficulty: int = 1
+    question: str
+    options: dict
+    correct_answer: str
+    explanation: str
+
+class AnnouncementCreate(BaseModel):
+    title: str
+    content: str
+    is_premium_only: bool = False
+
+class AnnouncementOut(BaseModel):
+    id: UUID
+    title: str
+    content: str
+    is_premium_only: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class AdminStatsOut(BaseModel):
+    total_users: int
+    premium_users: int
+    total_questions: int
+
+class UserProfileOut(BaseModel):
+    id: UUID
+    email: str
+    is_premium: bool
+    is_admin: bool
+    
+    class Config:
+        from_attributes = True
+
