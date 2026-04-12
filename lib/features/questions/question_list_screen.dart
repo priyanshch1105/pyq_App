@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../analytics/analytics_screen.dart';
 import '../practice/practice_screen.dart';
-import '../subscription/subscription_screen.dart';
+import '../profile/subscription_screen.dart';
 import 'question_models.dart';
 import 'question_repository.dart';
 import 'recommendations_screen.dart';
@@ -29,9 +29,12 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
   @override
   Widget build(BuildContext context) {
     final titleText = widget.examDisplayName ?? widget.exam;
-    final isFiltered = widget.subjectFilter != null || widget.topicFilter != null;
+    final isFiltered =
+        widget.subjectFilter != null || widget.topicFilter != null;
 
-    final future = ref.read(questionRepositoryProvider).fetchQuestions(
+    final future = ref
+        .read(questionRepositoryProvider)
+        .fetchQuestions(
           exam: widget.exam,
           subject: widget.subjectFilter,
           topic: widget.topicFilter,
@@ -42,9 +45,9 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
       IconButton(
         icon: const Icon(Icons.insights_rounded),
         tooltip: 'Analytics',
-        onPressed: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
-        ),
+        onPressed: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const AnalyticsScreen())),
       ),
       IconButton(
         icon: const Icon(Icons.auto_awesome_rounded),
@@ -57,9 +60,11 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
         icon: const Icon(Icons.workspace_premium_rounded),
         tooltip: 'Subscription',
         onPressed: () => Navigator.of(context).push(
-           MaterialPageRoute(builder: (_) => const SubscriptionScreen()),
+          MaterialPageRoute(
+            builder: (_) => const SubscriptionManagementScreen(),
+          ),
         ),
-      )
+      ),
     ];
 
     if (isFiltered) {
@@ -71,9 +76,12 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
         body: FutureBuilder<List<Question>>(
           future: future,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-            if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-            if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('No questions found.'));
+            if (snapshot.connectionState == ConnectionState.waiting)
+              return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError)
+              return Center(child: Text('Error: ${snapshot.error}'));
+            if (!snapshot.hasData || snapshot.data!.isEmpty)
+              return const Center(child: Text('No questions found.'));
             return _buildQuestionList(snapshot.data!);
           },
         ),
@@ -98,10 +106,13 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
         body: FutureBuilder<List<Question>>(
           future: future,
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-            if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-            if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('No questions found.'));
-            
+            if (snapshot.connectionState == ConnectionState.waiting)
+              return const Center(child: CircularProgressIndicator());
+            if (snapshot.hasError)
+              return Center(child: Text('Error: ${snapshot.error}'));
+            if (!snapshot.hasData || snapshot.data!.isEmpty)
+              return const Center(child: Text('No questions found.'));
+
             final questions = snapshot.data!;
             return TabBarView(
               children: [
@@ -125,7 +136,10 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
             title: Text(
               q.question,
               maxLines: 2,
@@ -188,17 +202,22 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
               backgroundColor: Colors.indigo.withOpacity(0.1),
               child: const Icon(Icons.book, color: Colors.indigo),
             ),
-            title: Text(sub, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(
+              sub,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Text('$count questions available'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => QuestionListScreen(
-                  exam: widget.exam,
-                  examDisplayName: widget.examDisplayName,
-                  subjectFilter: sub,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => QuestionListScreen(
+                    exam: widget.exam,
+                    examDisplayName: widget.examDisplayName,
+                    subjectFilter: sub,
+                  ),
                 ),
-              ));
+              );
             },
           ),
         );
@@ -228,17 +247,22 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
               backgroundColor: Colors.blueGrey.withOpacity(0.1),
               child: const Icon(Icons.library_books, color: Colors.blueGrey),
             ),
-            title: Text(top, style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Text(
+              top,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
             subtitle: Text('$count questions available'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => QuestionListScreen(
-                  exam: widget.exam,
-                  examDisplayName: widget.examDisplayName,
-                  topicFilter: top,
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => QuestionListScreen(
+                    exam: widget.exam,
+                    examDisplayName: widget.examDisplayName,
+                    topicFilter: top,
+                  ),
                 ),
-              ));
+              );
             },
           ),
         );
@@ -269,7 +293,11 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
