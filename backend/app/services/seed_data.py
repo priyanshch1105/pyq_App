@@ -1,7 +1,8 @@
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.models import Question
+from app.core.security import hash_password
+from app.models.models import Question, User
 
 
 MOCK_JEE_PYQS = [
@@ -151,3 +152,35 @@ async def seed_mock_jee_questions(session: AsyncSession) -> dict[str, int]:
 
     await session.commit()
     return {"inserted": inserted, "skipped": skipped, "total": len(MOCK_JEE_PYQS)}
+
+
+async def seed_test_users(session: AsyncSession) -> dict[str, int]:
+    """Seed test users for development"""
+    # Clear existing test users first
+    from sqlalchemy import delete
+    await session.execute(delete(User).where(User.email.in_([
+        "admin@admin.com",
+        "premium@test.com", 
+        "user@test.com"
+    ])))
+    
+    test_users = [
+        {"email": "admin@admin.com", "password": "admin@123", "is_admin": True, "is_premium": True},
+        {"email": "premium@test.com", "password": "premium@123", "is_admin": False, "is_premium": True},
+        {"email": "user@test.com", "password": "user@test123", "is_admin": False, "is_premium": False},
+    ]
+    
+    inserted = 0
+    
+    for user_data in test_users:
+        user = User(
+            email=user_data["email"],
+            password_hash=hash_password(user_data["password"]),
+            is_admin=user_data["is_admin"],
+            is_premium=user_data["is_premium"],
+        )
+        session.add(user)
+        inserted += 1
+    
+    await session.commit()
+    return {"inserted": inserted, "total": len(test_users)}

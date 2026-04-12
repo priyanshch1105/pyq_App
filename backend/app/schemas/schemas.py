@@ -98,6 +98,20 @@ class AnnouncementOut(BaseModel):
     content: str
     is_premium_only: bool
     created_at: datetime
+
+
+class BulkQuestionUploadResponse(BaseModel):
+    total_processed: int
+    inserted: int
+    skipped: int
+    failed: int
+    errors: list[dict] = []
+
+
+class AdminStatsOut(BaseModel):
+    total_users: int
+    premium_users: int
+    total_questions: int
     
     class Config:
         from_attributes = True

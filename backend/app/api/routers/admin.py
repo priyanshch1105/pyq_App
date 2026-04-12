@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from app.api.deps import get_current_user
 from app.db.session import get_session
 from app.models.models import Announcement, Question, User
-from app.schemas.schemas import AdminStatsOut, AnnouncementCreate, AnnouncementOut, QuestionCreate
+from app.schemas.schemas import AdminStatsOut, AnnouncementCreate, AnnouncementOut, QuestionCreate, BulkQuestionUploadResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -79,3 +80,87 @@ async def create_announcement(
     await session.commit()
     await session.refresh(announcement)
     return announcement
+
+
+@router.post("/bulk-questions", response_model=BulkQuestionUploadResponse)
+async def bulk_upload_questions(
+    file: UploadFile = File(...),
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user)
+) -> BulkQuestionUploadResponse:
+    """Upload multiple questions from a JSON file"""
+    require_admin(current_user)
+    
+    if not file.filename.endswith('.json'):
+        raise HTTPException(status_code=400, detail="Only JSON files are supported")
+    
+    try:
+        content = await file.read()
+        questions_data = json.loads(content.decode('utf-8'))
+        
+        if not isinstance(questions_data, list):
+            raise HTTPException(status_code=400, detail="JSON must be an array of question objects")
+        
+        inserted = 0
+        skipped = 0
+        failed = 0
+        errors = []
+        
+        for idx, q in enumerate(questions_data):
+            try:
+                # Validate required fields
+                required = ['exam', 'subject', 'topic', 'year', 'question', 'correct_answer', 'options']
+                for field in required:
+                    if field not in q:
+                        raise ValueError(f"Missing field: {field}")
+                
+                # Check for duplicates
+                existing = await session.scalar(
+                    select(Question).where(
+                        (Question.exam == q['exam']) &
+                        (Question.year == int(q['year'])) &
+                        (Question.question == q['question'])
+                    )
+                )
+                
+                if existing:
+                    skipped += 1
+                    continue
+                
+                # Create question
+                question = Question(
+                    exam=q['exam'],
+                    subject=q.get('subject', 'Unknown'),
+                    topic=q.get('topic', 'Unknown'),
+                    year=int(q['year']),
+                    difficulty=int(q.get('difficulty', 1)),
+                    question=q['question'],
+                    options=q.get('options', {}),
+                    correct_answer=str(q['correct_answer']).upper(),
+                    explanation=q.get('explanation', ''),
+                    weightage=float(q.get('weightage', 1.0)),
+                )
+                session.add(question)
+                inserted += 1
+                
+            except Exception as e:
+                failed += 1
+                errors.append({
+                    "row": idx + 1,
+                    "error": str(e)
+                })
+        
+        await session.commit()
+        
+        return BulkQuestionUploadResponse(
+            total_processed=len(questions_data),
+            inserted=inserted,
+            skipped=skipped,
+            failed=failed,
+            errors=errors
+        )
+        
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON format")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")

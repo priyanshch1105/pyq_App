@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_session
-from app.services.seed_data import seed_mock_jee_questions
+from app.services.seed_data import seed_mock_jee_questions, seed_test_users
 
 router = APIRouter(prefix="/seed", tags=["seed"])
 
@@ -20,3 +20,17 @@ async def seed_mock_jee(
         )
     result = await seed_mock_jee_questions(session)
     return {"message": "Mock JEE data seeded", **result}
+
+
+@router.post("/test-users")
+async def seed_test_users_endpoint(
+    session: AsyncSession = Depends(get_session),
+    x_admin_seed_key: str | None = Header(default=None),
+) -> dict:
+    if x_admin_seed_key != settings.admin_seed_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid admin seed key",
+        )
+    result = await seed_test_users(session)
+    return {"message": "Test users seeded", **result}
