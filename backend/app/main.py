@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,6 +8,7 @@ from app.models.models import Base
 from app.db.session import engine
 
 app = FastAPI(title="PYQ Platform API", version="1.0.0")
+logger = logging.getLogger(__name__)
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,8 +28,11 @@ app.include_router(announcements.router)
 
 @app.on_event("startup")
 async def startup() -> None:
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception:
+        logger.exception("Database startup initialization failed")
 
 
 @app.get("/")
