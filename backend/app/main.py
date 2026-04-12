@@ -2,10 +2,9 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 
 from app.api.routers import admin, announcements, auth, practice, questions, recommendations, seed
-from app.db import session as db_session
+from app.db.session import engine
 from app.models.models import Base
 
 app = FastAPI(title="PYQ Platform API", version="1.0.0")
@@ -27,38 +26,14 @@ app.include_router(seed.router)
 app.include_router(admin.router)
 app.include_router(announcements.router)
 
-
-async def _initialize_database() -> None:
-    async with db_session.engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-        if db_session.current_database_url.startswith("postgresql+asyncpg://"):
-            # Keep old deployed Postgres databases compatible with current ORM models.
-            await conn.execute(
-                text(
-                    "ALTER TABLE users "
-                    "ADD COLUMN IF NOT EXISTS is_premium BOOLEAN NOT NULL DEFAULT FALSE"
-                )
-            )
-            await conn.execute(
-                text(
-                    "ALTER TABLE users "
-                    "ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE"
-                )
-            )
-
 @app.on_event("startup")
 async def startup() -> None:
     try:
-        await _initialize_database()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     except Exception:
-        if db_session.current_database_url.startswith("postgresql+asyncpg://"):
-            logger.exception("Primary Postgres connection failed at startup")
-            logger.warning("Falling back to SQLite because Postgres is unreachable")
-            await db_session.switch_database_url(db_session.SQLITE_FALLBACK_URL)
-            await _initialize_database()
-        else:
-            logger.exception("Database startup initialization failed")
-            raise
+        logger.exception("Database startup initialization failed")
+        raise
 
 
 @app.get("/")
