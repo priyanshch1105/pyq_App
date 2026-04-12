@@ -23,9 +23,19 @@ async def register_user(session: AsyncSession, email: str, password: str) -> str
 
 async def login_user(session: AsyncSession, email: str, password: str) -> str:
     user = await session.scalar(select(User).where(User.email == email))
-    if not user or not verify_password(password, user.password_hash):
+    if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
-    return create_access_token(str(user.id))
+
+    if verify_password(password, user.password_hash):
+        return create_access_token(str(user.id))
+
+    # Backward compatibility: migrate legacy plaintext passwords on successful login.
+    if user.password_hash == password:
+        user.password_hash = hash_password(password)
+        await session.commit()
+        return create_access_token(str(user.id))
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
 
 async def fetch_questions(

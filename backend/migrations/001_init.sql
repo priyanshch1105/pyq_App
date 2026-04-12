@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  is_premium BOOLEAN NOT NULL DEFAULT FALSE
+  is_premium BOOLEAN NOT NULL DEFAULT FALSE,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS questions (
@@ -39,6 +40,14 @@ CREATE TABLE IF NOT EXISTS topic_stats (
   avg_time DOUBLE PRECISION NOT NULL DEFAULT 0.0,
   attempts INT NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, topic)
+);
+
+CREATE TABLE IF NOT EXISTS announcements (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  is_premium_only BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS ix_questions_exam ON questions(exam);

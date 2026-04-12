@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.api.routers import admin, announcements, auth, practice, questions, recommendations, seed
 from app.models.models import Base
@@ -31,8 +32,22 @@ async def startup() -> None:
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            # Keep old deployed databases compatible with current ORM models.
+            await conn.execute(
+                text(
+                    "ALTER TABLE users "
+                    "ADD COLUMN IF NOT EXISTS is_premium BOOLEAN NOT NULL DEFAULT FALSE"
+                )
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE users "
+                    "ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE"
+                )
+            )
     except Exception:
         logger.exception("Database startup initialization failed")
+        raise
 
 
 @app.get("/")

@@ -1,8 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -13,7 +12,7 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     is_premium: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -23,7 +22,7 @@ class User(Base):
 class Question(Base):
     __tablename__ = "questions"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     exam: Mapped[str] = mapped_column(String(32), index=True)
     subject: Mapped[str] = mapped_column(String(128), index=True)
     topic: Mapped[str] = mapped_column(String(128), index=True)
@@ -43,9 +42,9 @@ class Question(Base):
 class Attempt(Base):
     __tablename__ = "attempts"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), index=True)
-    question_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("questions.id"), index=True)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("users.id"), index=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), ForeignKey("questions.id"), index=True)
     topic: Mapped[str] = mapped_column(String(128), index=True)
     is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
     time_taken: Mapped[float] = mapped_column(Float, nullable=False)
@@ -57,7 +56,7 @@ class TopicStat(Base):
     __tablename__ = "topic_stats"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id"), primary_key=True
+        Uuid(as_uuid=True), ForeignKey("users.id"), primary_key=True
     )
     topic: Mapped[str] = mapped_column(String(128), primary_key=True)
     accuracy: Mapped[float] = mapped_column(Float, default=0.0)
@@ -67,7 +66,7 @@ class TopicStat(Base):
 class Announcement(Base):
     __tablename__ = "announcements"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     is_premium_only: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

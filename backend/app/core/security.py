@@ -17,7 +17,13 @@ def hash_password(password: str) -> str:
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify password against its bcrypt hash."""
-    return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    if not hashed_password:
+        return False
+    try:
+        return bcrypt.checkpw(plain_password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except (TypeError, ValueError):
+        # Legacy/dev databases may contain non-bcrypt password values.
+        return False
 
 
 def create_access_token(subject: str, expires_minutes: int | None = None) -> str:

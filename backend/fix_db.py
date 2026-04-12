@@ -6,6 +6,13 @@ from app.models.models import Base
 async def fix_db():
     async with engine.begin() as conn:
         try:
+            print("Adding is_premium to users table...")
+            await conn.execute(text("ALTER TABLE users ADD COLUMN is_premium BOOLEAN DEFAULT FALSE NOT NULL;"))
+            print("Successfully added is_premium column!")
+        except Exception as e:
+            print(f"Column might already exist or failed: {e}")
+
+        try:
             print("Adding is_admin to users table...")
             await conn.execute(text("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE NOT NULL;"))
             print("Successfully added is_admin column!")

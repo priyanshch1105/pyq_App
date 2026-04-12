@@ -30,6 +30,13 @@ Path: `backend/`
 
 API base: `http://localhost:8000`
 
+### Render notes
+
+- Set `DATABASE_URL` in Render service environment.
+- The backend now normalizes `postgres://` and `postgresql://` to `postgresql+asyncpg://` automatically.
+- On startup, backend also ensures legacy databases get missing `users.is_admin` column.
+- Ensure `SECRET_KEY` is set to a strong random value in production.
+
 ## Frontend
 
 Path: `lib/`
@@ -39,8 +46,12 @@ Path: `lib/`
 1. Install Flutter dependencies:
    - `flutter pub get`
 2. Run app and set API base URL:
-   - `flutter run --dart-define=API_BASE_URL=http://localhost:8000`
-   - For Android emulator, use `http://10.0.2.2:8000`.
+   - Render (recommended for phone + emulator):
+     - `flutter run --dart-define=API_BASE_URL=https://pyq-app.onrender.com`
+   - Local backend on Android emulator:
+     - `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000`
+   - Local backend on physical phone (same Wi-Fi):
+     - `flutter run --dart-define=API_BASE_URL=http://<YOUR_PC_LAN_IP>:8000`
 
 ## Implemented Modules
 
