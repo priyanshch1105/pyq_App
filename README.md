@@ -33,7 +33,9 @@ API base: `http://localhost:8000`
 ### Render notes
 
 - Set `DATABASE_URL` in Render service environment.
-- The backend now normalizes `postgres://` and `postgresql://` to `postgresql+asyncpg://` automatically.
+- Use Render Postgres **internal** URL (not localhost).
+- The backend normalizes `postgres://` and `postgresql://` to `postgresql+asyncpg://` automatically.
+- On Render, local `.env` is ignored and only Render environment variables are used.
 - On startup, backend also ensures legacy databases get missing `users.is_admin` column.
 - Ensure `SECRET_KEY` is set to a strong random value in production.
 
