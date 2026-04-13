@@ -128,11 +128,62 @@ MOCK_JEE_PYQS = [
     },
 ]
 
+MOCK_PLATFORM_PYQS = MOCK_JEE_PYQS + [
+    {
+        "exam": "UPSC",
+        "subject": "Polity",
+        "topic": "Fundamental Rights",
+        "year": 2022,
+        "difficulty": 2,
+        "question": "Which Article of the Indian Constitution guarantees equality before law?",
+        "options": {"A": "Article 14", "B": "Article 19", "C": "Article 21", "D": "Article 32"},
+        "correct_answer": "A",
+        "explanation": "Article 14 provides equality before law and equal protection of laws.",
+        "weightage": 1.0,
+    },
+    {
+        "exam": "NEET",
+        "subject": "Biology",
+        "topic": "Cell Biology",
+        "year": 2021,
+        "difficulty": 2,
+        "question": "Powerhouse of the cell is:",
+        "options": {"A": "Nucleus", "B": "Ribosome", "C": "Mitochondria", "D": "Golgi body"},
+        "correct_answer": "C",
+        "explanation": "Mitochondria are known as powerhouse due to ATP production.",
+        "weightage": 1.0,
+    },
+    {
+        "exam": "NDA",
+        "subject": "General Science",
+        "topic": "Motion",
+        "year": 2020,
+        "difficulty": 1,
+        "question": "Unit of acceleration is:",
+        "options": {"A": "m/s", "B": "m/s^2", "C": "N", "D": "kg m/s"},
+        "correct_answer": "B",
+        "explanation": "Acceleration is rate of change of velocity, so unit is m/s^2.",
+        "weightage": 0.8,
+    },
+    {
+        "exam": "SSC",
+        "subject": "Quantitative Aptitude",
+        "topic": "Percentages",
+        "year": 2022,
+        "difficulty": 2,
+        "question": "What is 20% of 250?",
+        "options": {"A": "25", "B": "40", "C": "50", "D": "60"},
+        "correct_answer": "C",
+        "explanation": "20/100 * 250 = 50.",
+        "weightage": 0.9,
+    },
+]
 
-async def seed_mock_jee_questions(session: AsyncSession) -> dict[str, int]:
+
+async def _seed_questions(session: AsyncSession, questions: list[dict]) -> dict[str, int]:
     inserted = 0
     skipped = 0
-    for item in MOCK_JEE_PYQS:
+    for item in questions:
         existing = await session.scalar(
             select(Question).where(
                 and_(
@@ -151,7 +202,15 @@ async def seed_mock_jee_questions(session: AsyncSession) -> dict[str, int]:
         inserted += 1
 
     await session.commit()
-    return {"inserted": inserted, "skipped": skipped, "total": len(MOCK_JEE_PYQS)}
+    return {"inserted": inserted, "skipped": skipped, "total": len(questions)}
+
+
+async def seed_mock_jee_questions(session: AsyncSession) -> dict[str, int]:
+    return await _seed_questions(session, MOCK_JEE_PYQS)
+
+
+async def seed_platform_questions(session: AsyncSession) -> dict[str, int]:
+    return await _seed_questions(session, MOCK_PLATFORM_PYQS)
 
 
 async def seed_test_users(session: AsyncSession) -> dict[str, int]:

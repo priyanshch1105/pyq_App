@@ -2,10 +2,12 @@ import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import select
 
 from app.api.routers import admin, announcements, auth, practice, questions, recommendations, seed
-from app.db.session import engine
-from app.models.models import Base
+from app.db.session import AsyncSessionLocal, engine
+from app.models.models import Base, Question
+from app.services.seed_data import seed_platform_questions
 
 app = FastAPI(title="PYQ Platform API", version="1.0.0")
 logger = logging.getLogger(__name__)
@@ -31,6 +33,16 @@ async def startup() -> None:
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        async with AsyncSessionLocal() as session:
+            existing = await session.scalar(select(Question.id).limit(1))
+            if existing is None:
+                result = await seed_platform_questions(session)
+                logger.info(
+                    "Seeded startup questions inserted=%s skipped=%s total=%s",
+                    result["inserted"],
+                    result["skipped"],
+                    result["total"],
+                )
     except Exception:
         logger.exception("Database startup initialization failed")
         raise
