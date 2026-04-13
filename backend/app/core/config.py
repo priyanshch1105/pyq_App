@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     secret_key: str = "change-this-in-production"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
-    database_url: str = "sqlite+aiosqlite:///./pyq.db"
+    database_url: str = "postgresql+asyncpg://postgres:2005@localhost:5432/pyq_db"
     free_question_limit: int = 25
     admin_seed_key: str = "seed-dev-key"
 
