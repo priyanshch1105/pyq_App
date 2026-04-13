@@ -49,7 +49,7 @@ Path: `lib/`
    - `flutter pub get`
 2. Run app and set API base URL:
    - Render (recommended for phone + emulator):
-     - `flutter run --dart-define=API_BASE_URL=https://pyq-app.onrender.com`
+        - `flutter run --dart-define=API_BASE_URL=https://pyq-app-0h48.onrender.com`
    - Local backend on Android emulator:
      - `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000`
    - Local backend on physical phone (same Wi-Fi):

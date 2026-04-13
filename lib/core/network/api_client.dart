@@ -5,7 +5,7 @@ import '../storage/token_store.dart';
 
 const baseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'https://pyq-app.onrender.com',
+  defaultValue: 'https://pyq-app-0h48.onrender.com',
 );
 
 String _normalizedBaseUrl() {
