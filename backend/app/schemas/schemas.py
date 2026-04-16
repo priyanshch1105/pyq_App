@@ -99,6 +99,9 @@ class AnnouncementOut(BaseModel):
     is_premium_only: bool
     created_at: datetime
 
+    class Config:
+        from_attributes = True
+
 
 class BulkQuestionUploadResponse(BaseModel):
     total_processed: int
@@ -112,14 +115,24 @@ class AdminStatsOut(BaseModel):
     total_users: int
     premium_users: int
     total_questions: int
-    
+    active_users: int = 0
+    active_rooms: int = 0
+    total_announcements: int = 0
+
     class Config:
         from_attributes = True
 
-class AdminStatsOut(BaseModel):
-    total_users: int
-    premium_users: int
-    total_questions: int
+
+class ActiveUserSampleOut(BaseModel):
+    user_id: UUID
+    email: str
+    last_seen: datetime
+
+
+class AdminRealtimeSnapshotOut(BaseModel):
+    active_users: int
+    active_rooms: int
+    tracked_users: list[ActiveUserSampleOut]
 
 class UserProfileOut(BaseModel):
     id: UUID

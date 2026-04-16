@@ -1,12 +1,16 @@
 import logging
+from uuid import UUID
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from jose import JWTError, jwt
 from sqlalchemy import select
 
-from app.api.routers import admin, announcements, auth, practice, questions, recommendations, seed
+from app.api.router import api_router
+from app.core.config import settings
 from app.db.session import AsyncSessionLocal, engine
-from app.models.models import Base, Question
+from app.models.models import Base, Question, User
+from app.services.admin_realtime import admin_realtime_tracker
 from app.services.seed_data import seed_platform_questions
 
 app = FastAPI(title="PYQ Platform API", version="1.0.0")
@@ -20,13 +24,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
-app.include_router(questions.router)
-app.include_router(practice.router)
-app.include_router(recommendations.router)
-app.include_router(seed.router)
-app.include_router(admin.router)
-app.include_router(announcements.router)
+app.include_router(api_router)
+app.include_router(api_router, prefix="/api/v1")
+
+
+@app.middleware("http")
+async def track_authenticated_activity(request: Request, call_next):
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        token = auth_header.split(" ", 1)[1].strip()
+        try:
+            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            user_id = payload.get("sub")
+            if user_id:
+                async with AsyncSessionLocal() as session:
+                    user = await session.scalar(select(User).where(User.id == UUID(user_id)))
+                    if user:
+                        await admin_realtime_tracker.touch_user(user.id, user.email)
+        except JWTError:
+            pass
+        except Exception:
+            logger.exception("Failed to track authenticated user activity")
+    return await call_next(request)
 
 @app.on_event("startup")
 async def startup() -> None:
@@ -53,7 +72,8 @@ async def root() -> dict:
     return {
         "message": "Welcome to PYQ Platform API",
         "docs": "/docs",
-        "health": "/health"
+        "health": "/health",
+        "versioned_api": "/api/v1",
     }
 
 
@@ -61,7 +81,3 @@ async def root() -> dict:
 async def favicon() -> None:
     return None
 
-
-@app.get("/health")
-async def health() -> dict:
-    return {"status": "ok"}

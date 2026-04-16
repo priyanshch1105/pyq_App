@@ -13,6 +13,16 @@ class Settings(BaseSettings):
     free_question_limit: int = 25
     admin_seed_key: str = "seed-dev-key"
 
+    redis_url: str | None = None
+
+    llm_provider: str = "stub"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4.1-mini"
+
+    cloudinary_cloud_name: str | None = None
+    cloudinary_api_key: str | None = None
+    cloudinary_api_secret: str | None = None
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     @field_validator("database_url", mode="before")

@@ -1,18 +1,86 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, WebSocket, WebSocketDisconnect
+from jose import JWTError, jwt
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
+from uuid import UUID
 
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.db.session import get_session
 from app.models.models import Announcement, Question, User
-from app.schemas.schemas import AdminStatsOut, AnnouncementCreate, AnnouncementOut, QuestionCreate, BulkQuestionUploadResponse
+from app.schemas.schemas import (
+    ActiveUserSampleOut,
+    AdminRealtimeSnapshotOut,
+    AdminStatsOut,
+    AnnouncementCreate,
+    AnnouncementOut,
+    BulkQuestionUploadResponse,
+    QuestionCreate,
+)
+from app.services.admin_realtime import admin_realtime_tracker
+from app.api.routers.rooms import manager as room_manager
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 def require_admin(user: User):
     if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
+
+
+async def _build_snapshot() -> AdminRealtimeSnapshotOut:
+    tracked_users = [
+        ActiveUserSampleOut(**row)
+        for row in await admin_realtime_tracker.active_user_samples(limit=8)
+    ]
+    return AdminRealtimeSnapshotOut(
+        active_users=await admin_realtime_tracker.active_user_count(),
+        active_rooms=len(room_manager.active_connections),
+        tracked_users=tracked_users,
+    )
+
+
+async def _dashboard_payload(event: str = "dashboard_snapshot") -> dict:
+    snapshot = await _build_snapshot()
+    return {
+        "event": event,
+        "active_users": snapshot.active_users,
+        "active_rooms": snapshot.active_rooms,
+        "tracked_users": [
+            {
+                "user_id": str(user.user_id),
+                "email": user.email,
+                "last_seen": user.last_seen.isoformat(),
+            }
+            for user in snapshot.tracked_users
+        ],
+    }
+
+
+async def authenticate_admin_ws(websocket: WebSocket) -> User:
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4401)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing token")
+
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        user_id = payload.get("sub")
+        if not user_id:
+            raise ValueError("Missing subject")
+    except (JWTError, ValueError):
+        await websocket.close(code=4401)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+
+    async for session in get_session():
+        user = await session.scalar(select(User).where(User.id == UUID(user_id)))
+        if not user or not user.is_admin:
+            await websocket.close(code=4403)
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin privileges required")
+        return user
+
+    await websocket.close(code=1011)
+    raise HTTPException(status_code=500, detail="Unable to create session")
 
 @router.get("/stats", response_model=AdminStatsOut)
 async def get_admin_stats(
@@ -23,12 +91,24 @@ async def get_admin_stats(
     total_users = await session.scalar(select(func.count(User.id)))
     premium_users = await session.scalar(select(func.count(User.id)).where(User.is_premium == True))
     total_questions = await session.scalar(select(func.count(Question.id)))
+    total_announcements = await session.scalar(select(func.count(Announcement.id)))
     
     return AdminStatsOut(
         total_users=total_users or 0,
         premium_users=premium_users or 0,
         total_questions=total_questions or 0,
+        active_users=await admin_realtime_tracker.active_user_count(),
+        active_rooms=len(room_manager.active_connections),
+        total_announcements=total_announcements or 0,
     )
+
+
+@router.get("/realtime", response_model=AdminRealtimeSnapshotOut)
+async def get_realtime_snapshot(
+    current_user: User = Depends(get_current_user),
+) -> AdminRealtimeSnapshotOut:
+    require_admin(current_user)
+    return await _build_snapshot()
 
 
 @router.get("/announcements", response_model=list[AnnouncementOut])
@@ -79,6 +159,19 @@ async def create_announcement(
     session.add(announcement)
     await session.commit()
     await session.refresh(announcement)
+    await admin_realtime_tracker.broadcast_announcement(
+        {
+            "event": "announcement_created",
+            "announcement": {
+                "id": str(announcement.id),
+                "title": announcement.title,
+                "content": announcement.content,
+                "is_premium_only": announcement.is_premium_only,
+                "created_at": announcement.created_at.isoformat(),
+            },
+        }
+    )
+    await admin_realtime_tracker.broadcast_dashboard(await _dashboard_payload())
     return announcement
 
 
@@ -164,3 +257,21 @@ async def bulk_upload_questions(
         raise HTTPException(status_code=400, detail="Invalid JSON format")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+
+
+@router.websocket("/ws/dashboard")
+async def admin_dashboard_ws(websocket: WebSocket) -> None:
+    user = await authenticate_admin_ws(websocket)
+    await admin_realtime_tracker.touch_user(user.id, user.email)
+    await admin_realtime_tracker.register_dashboard(websocket)
+    await admin_realtime_tracker.broadcast_dashboard(await _dashboard_payload("admin_connected"))
+    try:
+        await websocket.send_json(await _dashboard_payload())
+        while True:
+            message = await websocket.receive_json()
+            if message.get("event") == "ping":
+                await admin_realtime_tracker.touch_user(user.id, user.email)
+                await websocket.send_json(await _dashboard_payload("pong"))
+    except WebSocketDisconnect:
+        admin_realtime_tracker.unregister_dashboard(websocket)
+        await admin_realtime_tracker.broadcast_dashboard(await _dashboard_payload("admin_disconnected"))
