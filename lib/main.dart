@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'app/router/app_router.dart';
+import 'core/constants/app_constants.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/login_screen.dart';
 
 void main() {
   runApp(const ProviderScope(child: PyqApp()));
@@ -14,10 +15,13 @@ class PyqApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PYQ Master',
+      title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
-      home: const LoginScreen(),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
+      onGenerateRoute: AppRouter.onGenerateRoute,
+      initialRoute: AppRoutes.login,
     );
   }
 }
